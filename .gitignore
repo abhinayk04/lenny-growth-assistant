@@ -39,3 +39,5 @@ logs/
 # Temporary files
 *.tmp
 *.temp
+# Local transcript corpus (not committed)
+data/transcripts/source/
