@@ -2,6 +2,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, HTTPException
 
+from app.agent.service import answer_question
 from app.api.schemas.messages import (
     CreateMessageRequest,
     MessageResponse,
@@ -19,11 +20,11 @@ router = APIRouter(
 )
 
 
-@router.post("", response_model=MessageResponse)
+@router.post("")
 def create_new_message(
     session_id: UUID,
     request: CreateMessageRequest,
-) -> MessageResponse:
+) -> dict:
     if get_session(session_id) is None:
         raise HTTPException(
             status_code=404,
@@ -33,19 +34,40 @@ def create_new_message(
             },
         )
 
-    message = create_message(
+    previous_messages = get_session_messages(session_id)
+
+    user_message = create_message(
         session_id=session_id,
-        role=request.role,
+        role="user",
         content=request.content,
     )
 
-    return MessageResponse(
-        id=message["id"],
-        session_id=str(message["session_id"]),
-        role=message["role"],
-        content=message["content"],
-        created_at=message["created_at"].isoformat(),
+    result = answer_question(request.content, history=previous_messages)
+
+    assistant_message = create_message(
+        session_id=session_id,
+        role="assistant",
+        content=result["answer"],
     )
+
+    return {
+        "user_message": MessageResponse(
+            id=user_message["id"],
+            session_id=str(user_message["session_id"]),
+            role=user_message["role"],
+            content=user_message["content"],
+            created_at=user_message["created_at"].isoformat(),
+        ),
+        "assistant_message": MessageResponse(
+            id=assistant_message["id"],
+            session_id=str(assistant_message["session_id"]),
+            role=assistant_message["role"],
+            content=assistant_message["content"],
+            created_at=assistant_message["created_at"].isoformat(),
+        ),
+        "grounded": result["grounded"],
+        "sources": result["sources"],
+    }
 
 
 @router.get("", response_model=list[MessageResponse])
