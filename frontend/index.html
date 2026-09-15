@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lenny Growth Assistant</title>
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --bg-dark: #0f172a;
+      --bg-light: #f8fafc;
+      --panel-bg: #ffffff;
+      --border-color: #e2e8f0;
+      --text-main: #1e293b;
+      --text-muted: #64748b;
+      --user-msg: #f1f5f9;
+      --assistant-msg: #f8fafc;
+      --accent: #10b981;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg-light);
+      color: var(--text-main);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      background: var(--bg-dark);
+      color: #ffffff;
+      padding: 12px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand h1 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .badge {
+      background: #334155;
+      color: #cbd5e1;
+      padding: 4px 10px;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    .status-badge {
+      background: rgba(16, 185, 129, 0.2);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.4);
+    }
+
+    .container {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    .chat-panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      border-right: 1px solid var(--border-color);
+      background: var(--panel-bg);
+      max-width: 55%;
+    }
+
+    .artifact-panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: #fafafa;
+    }
+
+    .panel-header {
+      padding: 12px 20px;
+      background: #f1f5f9;
+      border-bottom: 1px solid var(--border-color);
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .chat-history {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .message-card {
+      padding: 14px 18px;
+      border-radius: 10px;
+      max-width: 90%;
+      line-height: 1.5;
+      font-size: 0.95rem;
+      white-space: pre-wrap;
+    }
+
+    .message-card.user {
+      align-self: flex-end;
+      background: var(--primary);
+      color: #ffffff;
+      border-bottom-right-radius: 2px;
+    }
+
+    .message-card.assistant {
+      align-self: flex-start;
+      background: var(--assistant-msg);
+      border: 1px solid var(--border-color);
+      border-bottom-left-radius: 2px;
+    }
+
+    .sources-container {
+      margin-top: 12px;
+      padding-top: 10px;
+      border-top: 1px dashed #cbd5e1;
+      font-size: 0.825rem;
+    }
+
+    .sources-title {
+      font-weight: 700;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+
+    .source-item {
+      margin: 4px 0;
+      color: var(--primary);
+    }
+
+    .source-item a {
+      color: var(--primary);
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    .source-item a:hover {
+      text-decoration: underline;
+    }
+
+    .grounded-tag {
+      display: inline-block;
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 4px;
+      margin-bottom: 6px;
+    }
+
+    .grounded-tag.true {
+      background: #dcfce7;
+      color: #166534;
+    }
+
+    .grounded-tag.false {
+      background: #fef3c7;
+      color: #92400e;
+    }
+
+    .chat-input-area {
+      padding: 16px;
+      border-top: 1px solid var(--border-color);
+      background: #ffffff;
+    }
+
+    textarea {
+      width: 100%;
+      height: 70px;
+      padding: 10px;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      resize: none;
+      font-family: inherit;
+      font-size: 0.95rem;
+      margin-bottom: 10px;
+      outline: none;
+    }
+
+    textarea:focus {
+      border-color: var(--primary);
+    }
+
+    .action-bar {
+      display: flex;
+      gap: 10px;
+      justify-content: space-between;
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 8px;
+    }
+
+    button {
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 0.875rem;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: #ffffff;
+    }
+
+    .btn-primary:hover {
+      background: var(--primary-hover);
+    }
+
+    .btn-secondary {
+      background: #e2e8f0;
+      color: var(--text-main);
+    }
+
+    .btn-secondary:hover {
+      background: #cbd5e1;
+    }
+
+    .artifact-content {
+      flex: 1;
+      padding: 20px;
+      overflow-y: auto;
+    }
+
+    iframe.artifact-frame {
+      width: 100%;
+      height: 100%;
+      border: none;
+      background: #ffffff;
+      border-radius: 6px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+
+    .artifact-placeholder {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      color: var(--text-muted);
+      text-align: center;
+      padding: 40px;
+    }
+
+    .artifact-placeholder svg {
+      width: 64px;
+      height: 64px;
+      margin-bottom: 16px;
+      opacity: 0.4;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <h1>Lenny Growth Assistant</h1>
+    <span class="badge status-badge" id="provider-badge">Provider: Ollama (qwen3:4b)</span>
+  </div>
+  <div>
+    <button class="btn-secondary" onclick="startNewSession()">+ New Session</button>
+  </div>
+</header>
+
+<div class="container">
+  <!-- Left Chat Panel -->
+  <div class="chat-panel">
+    <div class="panel-header">
+      <span>Conversation</span>
+      <span id="session-label">Session: initializing...</span>
+    </div>
+
+    <div class="chat-history" id="chat-history"></div>
+
+    <div class="chat-input-area">
+      <textarea id="question-input" placeholder="Ask a product or growth question grounded in Lenny's transcripts..."></textarea>
+      <div class="action-bar">
+        <div class="btn-group">
+          <button class="btn-secondary" onclick="triggerShip30()">Ship30 Essay</button>
+          <button class="btn-secondary" onclick="triggerArtifact()">Create Artifact</button>
+        </div>
+        <button class="btn-primary" onclick="sendMessage()">Send Question</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right Artifact Panel -->
+  <div class="artifact-panel">
+    <div class="panel-header">
+      <span id="artifact-title">Artifact Viewer</span>
+      <span class="badge" id="artifact-type-badge">Markdown / HTML</span>
+    </div>
+    <div class="artifact-content" id="artifact-content">
+      <div class="artifact-placeholder">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+        </svg>
+        <h3>No Artifact Selected</h3>
+        <p style="margin-top: 8px; font-size: 0.875rem;">Generate a Ship30 essay or request a structured artifact to view it here.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const API_BASE = "http://127.0.0.1:8000";
+let sessionId = null;
+
+async function fetchHealth() {
+  try {
+    const res = await fetch(`${API_BASE}/health`);
+    if (res.ok) {
+      const data = await res.json();
+      document.getElementById("provider-badge").textContent = `Provider: ${data.provider} (${data.model})`;
+    }
+  } catch (e) {
+    console.warn("Backend health fetch error:", e);
+  }
+}
+
+async function startNewSession() {
+  try {
+    const res = await fetch(`${API_BASE}/api/sessions`, { method: "POST" });
+    if (!res.ok) throw new Error("Failed to create session");
+    const data = await res.json();
+    sessionId = data.id;
+    document.getElementById("session-label").textContent = `Session: ${sessionId.slice(0, 8)}...`;
+    document.getElementById("chat-history").innerHTML = "";
+    addMessage("assistant", "Hello! I'm Lenny Growth Assistant. Ask me any product or growth question grounded strictly in Lenny's Podcast transcripts.");
+  } catch (e) {
+    alert("Error creating new session: " + e.message);
+  }
+}
+
+function addMessage(role, content, sources = null, grounded = true) {
+  const history = document.getElementById("chat-history");
+  const card = document.createElement("div");
+  card.className = `message-card ${role}`;
+
+  if (role === "assistant") {
+    const tag = document.createElement("div");
+    tag.className = `grounded-tag ${grounded}`;
+    tag.textContent = grounded ? "Grounded in Transcripts" : "Insufficient Evidence";
+    card.appendChild(tag);
+  }
+
+  const textNode = document.createElement("div");
+  textNode.textContent = content;
+  card.appendChild(textNode);
+
+  if (sources && sources.length > 0) {
+    const sourcesDiv = document.createElement("div");
+    sourcesDiv.className = "sources-container";
+    sourcesDiv.innerHTML = '<div class="sources-title">Sources & References:</div>';
+    
+    sources.forEach(s => {
+      const item = document.createElement("div");
+      item.className = "source-item";
+      const title = s.title || "Episode";
+      const guest = s.guest ? ` (${s.guest})` : "";
+      if (s.youtube_url) {
+        item.innerHTML = `<a href="${s.youtube_url}" target="_blank" rel="noopener">📺 ${title}${guest}</a>`;
+      } else {
+        item.textContent = `🎙️ ${title}${guest}`;
+      }
+      sourcesDiv.appendChild(item);
+    });
+    card.appendChild(sourcesDiv);
+  }
+
+  history.appendChild(card);
+  history.scrollTop = history.scrollHeight;
+  return card;
+}
+
+async function sendMessage() {
+  const input = document.getElementById("question-input");
+  const text = input.value.trim();
+  if (!text) return;
+
+  if (!sessionId) await startNewSession();
+
+  addMessage("user", text);
+  input.value = "";
+
+  const thinkingCard = addMessage("assistant", "Thinking & retrieving transcript evidence...", null, true);
+
+  try {
+    const res = await fetch(`${API_BASE}/api/sessions/${sessionId}/messages`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ role: "user", content: text })
+    });
+
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.error?.message || `Server error: ${res.status}`);
+    }
+
+    const data = await res.json();
+    thinkingCard.remove();
+    addMessage("assistant", data.assistant_message.content, data.sources, data.grounded);
+  } catch (err) {
+    thinkingCard.remove();
+    addMessage("assistant", "Error: " + err.message, null, false);
+  }
+}
+
+async function triggerShip30() {
+  const input = document.getElementById("question-input");
+  const topic = input.value.trim() || "Improving product retention and activation";
+  if (!sessionId) await startNewSession();
+
+  addMessage("user", `Generate Ship30 Essay on: ${topic}`);
+  const thinkingCard = addMessage("assistant", "Generating Ship30 essay (~1,250 words) from transcript evidence...", null, true);
+
+  try {
+    const res = await fetch(`${API_BASE}/api/sessions/${sessionId}/ship30`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ topic: topic })
+    });
+
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.error?.message || `Server error: ${res.status}`);
+    }
+
+    const data = await res.json();
+    thinkingCard.remove();
+    addMessage("assistant", `Ship30 Essay generated for "${topic}". Viewing in Artifact Panel.`, data.sources, data.grounded);
+    
+    renderArtifact(topic + " (Ship30 Essay)", "markdown", data.content);
+  } catch (err) {
+    thinkingCard.remove();
+    addMessage("assistant", "Ship30 generation failed: " + err.message, null, false);
+  }
+}
+
+async function triggerArtifact() {
+  const input = document.getElementById("question-input");
+  const title = input.value.trim() || "Growth Framework Artifact";
+  if (!sessionId) await startNewSession();
+
+  addMessage("user", `Generate Artifact: ${title}`);
+  const thinkingCard = addMessage("assistant", "Generating structured artifact...", null, true);
+
+  try {
+    const res = await fetch(`${API_BASE}/api/sessions/${sessionId}/artifacts`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title: title, type: "markdown" })
+    });
+
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.error?.message || `Server error: ${res.status}`);
+    }
+
+    const data = await res.json();
+    thinkingCard.remove();
+    addMessage("assistant", `Artifact "${data.title}" created. Viewing in Artifact Panel.`, null, true);
+    
+    renderArtifact(data.title, data.type, data.content);
+  } catch (err) {
+    thinkingCard.remove();
+    addMessage("assistant", "Artifact generation failed: " + err.message, null, false);
+  }
+}
+
+function renderArtifact(title, type, content) {
+  document.getElementById("artifact-title").textContent = title;
+  document.getElementById("artifact-type-badge").textContent = type.toUpperCase();
+
+  const container = document.getElementById("artifact-content");
+  container.innerHTML = "";
+
+  if (type.toLowerCase() === "html") {
+    const iframe = document.createElement("iframe");
+    iframe.className = "artifact-frame";
+    iframe.sandbox = "allow-same-origin";
+    iframe.srcdoc = content;
+    container.appendChild(iframe);
+  } else {
+    const pre = document.createElement("pre");
+    pre.style.whiteSpace = "pre-wrap";
+    pre.style.fontFamily = "inherit";
+    pre.style.lineHeight = "1.6";
+    pre.style.fontSize = "0.95rem";
+    pre.textContent = content;
+    container.appendChild(pre);
+  }
+}
+
+// Enable Enter key to send message
+document.getElementById("question-input").addEventListener("keydown", function(e) {
+  if (e.key === "Enter" && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+});
+
+// Initialize on page load
+fetchHealth();
+startNewSession();
+</script>
+
+</body>
+</html>
