@@ -43,13 +43,19 @@ def run_pi_agent(prompt: str, system_prompt: str, timeout: int = 15) -> Optional
     else:
         model_arg = settings.ollama_model
 
+    import tempfile
+
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False, encoding="utf-8") as tf:
+        tf.write(prompt)
+        temp_prompt_path = tf.name
+
     cmd.extend([
         "--mode", "text",
         "--model", model_arg,
         "--thinking", "off",
         "--no-tools",
-        "--system-prompt", system_prompt,
-        "-p", prompt,
+        "--system-prompt", system_prompt[:500],
+        f"@{temp_prompt_path}",
     ])
 
     env = os.environ.copy()
@@ -62,7 +68,6 @@ def run_pi_agent(prompt: str, system_prompt: str, timeout: int = 15) -> Optional
         logger.info(f"Running Pi Agent command: {' '.join(cmd[:6])}...")
         result = subprocess.run(
             cmd,
-            input="",
             capture_output=True,
             text=True,
             timeout=timeout,
@@ -76,6 +81,12 @@ def run_pi_agent(prompt: str, system_prompt: str, timeout: int = 15) -> Optional
             logger.warning(f"Pi Agent non-zero exit or empty stdout: {result.stderr[:200]}")
     except Exception as e:
         logger.warning(f"Pi Agent execution failed/timed out: {e}")
+    finally:
+        if os.path.exists(temp_prompt_path):
+            try:
+                os.remove(temp_prompt_path)
+            except Exception:
+                pass
 
     return None
 
@@ -88,14 +99,13 @@ def run_ollama_direct(prompt: str, system_prompt: str) -> str:
     payload = {
         "model": settings.ollama_model,
         "messages": [
-            {"role": "system", "content": system_prompt},
+            {"role": "system", "content": system_prompt + "\nDo not perform internal thinking. Keep response direct and concise."},
             {"role": "user", "content": prompt},
         ],
         "stream": False,
         "options": {
-            "num_predict": 600,
+            "num_predict": 250,
             "temperature": 0.2,
-            "think": False,
         },
     }
 
@@ -107,10 +117,11 @@ def run_ollama_direct(prompt: str, system_prompt: str) -> str:
     )
 
     try:
-        with urllib.request.urlopen(req, timeout=30) as resp:
+        with urllib.request.urlopen(req, timeout=180) as resp:
             data = json.loads(resp.read().decode("utf-8"))
             message_content = data.get("message", {}).get("content", "")
             return strip_reasoning(message_content)
+
     except Exception as e:
         logger.error(f"Ollama connection error: {e}")
         raise RuntimeError(f"OLLAMA_UNAVAILABLE: Failed to connect to Ollama at {base_url}: {e}")
@@ -158,23 +169,20 @@ def run_anthropic_direct(prompt: str, system_prompt: str) -> str:
 def generate_llm_response(prompt: str, system_prompt: str) -> str:
     """
     Primary agent entrypoint:
-    Attempts Pi Coding Agent CLI runner first.
-    Falls back cleanly to direct provider API if needed.
+    Dispatches request based on configured provider (ollama, anthropic).
+    Provides low-latency local execution with reasoning stripper and Pi CLI agent integration.
     """
     provider = settings.llm_provider.lower()
 
-    # If Anthropic provider requested but no key configured:
-    if provider == "anthropic" and not settings.anthropic_api_key:
-        raise ValueError("LLM_UNAVAILABLE: Anthropic API key is missing. Configure ANTHROPIC_API_KEY or set LLM_PROVIDER=ollama.")
-
-    # Try Pi Agent runtime first
-    pi_output = run_pi_agent(prompt, system_prompt)
-    if pi_output:
-        return pi_output
-
-    # Fallback to direct provider connection
-    logger.info(f"Falling back to direct provider API for '{provider}'")
     if provider == "anthropic":
+        if not settings.anthropic_api_key:
+            raise ValueError("LLM_UNAVAILABLE: Anthropic API key is missing. Configure ANTHROPIC_API_KEY or set LLM_PROVIDER=ollama.")
+        # Try Pi Agent runtime first for Anthropic if configured
+        pi_output = run_pi_agent(prompt, system_prompt)
+        if pi_output:
+            return pi_output
         return run_anthropic_direct(prompt, system_prompt)
     else:
+        # Local Ollama execution for fast demo response
         return run_ollama_direct(prompt, system_prompt)
+

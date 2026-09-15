@@ -70,16 +70,16 @@ def generate_answer(
         (
             f"Source Episode: {item['title']}\n"
             f"Guest: {item.get('guest') or 'Unknown'}\n"
-            f"Excerpt: {item['text'][:1800]}"
+            f"Excerpt: {item['text'][:800]}"
         )
-        for item in evidence[:4]
+        for item in evidence[:3]
     )
 
     prompt = (
         f"{history_text}"
         f"Transcript Evidence:\n{evidence_text}\n\n"
         f"Current User Question: {question}\n\n"
-        "Provide a grounded, practical answer backed strictly by the transcript evidence."
+        "Provide a concise, grounded answer in 3-5 sentences backed strictly by transcript evidence."
     )
 
     return generate_llm_response(prompt, SYSTEM_PROMPT)
