@@ -123,7 +123,7 @@ def reciprocal_rank_fusion(
 def hybrid_search(
     query: str,
     limit: int = 5,
-    candidate_limit: int = 10,
+    candidate_limit: int = 15,
 ) -> list[dict]:
     vector_results = search_similar_chunks(
         query,
@@ -140,4 +140,22 @@ def hybrid_search(
         keyword_results,
     )
 
-    return fused_results[:limit]
+    # Deduplicate by episode_id so distinct episodes are returned for user display
+    deduped = []
+    seen_episodes = set()
+    for item in fused_results:
+        ep_id = item.get("episode_id")
+        if ep_id not in seen_episodes:
+            seen_episodes.add(ep_id)
+            deduped.append(item)
+            if len(deduped) >= limit:
+                break
+
+    if len(deduped) < limit:
+        for item in fused_results:
+            if item not in deduped:
+                deduped.append(item)
+                if len(deduped) >= limit:
+                    break
+
+    return deduped

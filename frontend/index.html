@@ -505,6 +505,16 @@ function renderArtifact(title, type, content) {
   const container = document.getElementById("artifact-content");
   container.innerHTML = "";
 
+  if (!content || !content.trim()) {
+    container.innerHTML = `
+      <div class="artifact-placeholder">
+        <h3>Empty Artifact Content</h3>
+        <p style="margin-top: 8px; font-size: 0.875rem;">Artifact content could not be generated. Please try again.</p>
+      </div>
+    `;
+    return;
+  }
+
   if (type.toLowerCase() === "html") {
     const iframe = document.createElement("iframe");
     iframe.className = "artifact-frame";
@@ -512,13 +522,17 @@ function renderArtifact(title, type, content) {
     iframe.srcdoc = content;
     container.appendChild(iframe);
   } else {
-    const pre = document.createElement("pre");
-    pre.style.whiteSpace = "pre-wrap";
-    pre.style.fontFamily = "inherit";
-    pre.style.lineHeight = "1.6";
-    pre.style.fontSize = "0.95rem";
-    pre.textContent = content;
-    container.appendChild(pre);
+    const card = document.createElement("div");
+    card.style.background = "#ffffff";
+    card.style.padding = "24px";
+    card.style.borderRadius = "8px";
+    card.style.boxShadow = "0 1px 3px rgba(0,0,0,0.05)";
+    card.style.lineHeight = "1.7";
+    card.style.fontSize = "0.95rem";
+    card.style.whiteSpace = "pre-wrap";
+    card.style.fontFamily = "inherit";
+    card.textContent = content;
+    container.appendChild(card);
   }
 }
 
