@@ -54,3 +54,25 @@ CREATE INDEX IF NOT EXISTS idx_transcript_chunks_episode
 CREATE INDEX IF NOT EXISTS idx_transcript_chunks_embedding
     ON transcript_chunks
     USING hnsw (embedding vector_cosine_ops);
+
+CREATE TABLE IF NOT EXISTS sessions (
+    id UUID PRIMARY KEY,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+
+CREATE TABLE IF NOT EXISTS messages (
+    id BIGSERIAL PRIMARY KEY,
+    session_id UUID NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
+    role TEXT NOT NULL,
+    content TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+    CONSTRAINT valid_message_role
+        CHECK (role IN ('user', 'assistant', 'system'))
+);
+
+
+CREATE INDEX IF NOT EXISTS idx_messages_session
+    ON messages (session_id, created_at);
