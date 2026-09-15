@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 
+from app.api.routes.messages import router as messages_router
 from app.api.routes.sessions import router as sessions_router
 from app.db.database import check_database_connection
 
@@ -11,6 +12,7 @@ app = FastAPI(
 
 
 app.include_router(sessions_router)
+app.include_router(messages_router)
 
 
 @app.get("/health")
